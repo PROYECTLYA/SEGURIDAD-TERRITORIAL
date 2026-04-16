@@ -322,20 +322,21 @@
         },
 
 };
-    function tomarFoto(id) {
+   function tomarFoto(id) {
+    // 1. Creamos el input
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-
-    // 🔧 MEJORA: compatibilidad total
-    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-        input.setAttribute('capture', 'environment');
-    }
+    
+    // 2. Forzamos el atributo capture para activar la cámara directamente en móviles
+    // 'environment' para la cámara trasera, 'user' para la frontal
+    input.setAttribute('capture', 'environment');
 
     input.onchange = e => {
         const file = e.target.files[0];
         if (!file) return;
 
+        // Mostrar un indicador de carga si fuera necesario
         const reader = new FileReader();
         reader.onload = evt => {
             evidencias[id] = evt.target.result;
@@ -349,6 +350,7 @@
         reader.readAsDataURL(file);
     };
 
+    // 3. El clic debe ser lo último y disparado por la acción del usuario
     input.click();
 }
 
