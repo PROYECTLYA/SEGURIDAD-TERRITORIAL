@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Integral de Certificación - Safety</title>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        :root {
+            --bg-dark: #121212; --bg-card: #1e1e1e; --text-main: #ffffff;
+            --gold: #ffcc00; --f1-color: #ff0000; --f2-color: #76a028;
+            --f3-color: #00a0df; --f4-color: #e30613;
+            --dark: #000; --gray-bg: #f4f4f4; --critical: #d1d5db;
+            --navy: #002060;
+        }
+
+        body { font-family: 'Arial Narrow', sans-serif; margin: 0; background-color: var(--bg-dark); color: var(--text-main); overflow-x: hidden; }
+
+        /* --- MENÚ PRINCIPAL --- */
+        #main-menu { display: flex; flex-direction: column; align-items: center; min-height: 100vh; width: 100%; }
+        .menu-header { width: 100%; background: #000; padding: 30px 0; text-align: center; border-bottom: 5px solid var(--gold); }
+        .menu-header h1 { color: var(--gold); margin: 0; text-transform: uppercase; letter-spacing: 2px; font-size: 1.5em; padding: 0 10px; }
+
+        .grid-menu { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; padding: 20px; max-width: 1200px; width: 100%; box-sizing: border-box; }
+        
+        .phase-card { 
+            background: var(--bg-card); border-radius: 12px; padding: 30px 15px; text-align: center; 
+            cursor: pointer; transition: 0.3s ease; border: 2px solid transparent; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .phase-card:hover { transform: translateY(-5px); border-color: var(--gold); }
+        .phase-icon { font-size: 3em; margin-bottom: 10px; }
+        .phase-title { font-size: 1.6em; font-weight: bold; text-transform: uppercase; }
+
+        .card-f1 .phase-title { color: var(--f1-color); }
+        .card-f2 .phase-title { color: var(--f2-color); }
+        .card-f3 .phase-title { color: var(--f3-color); }
+        .card-f4 .phase-title { color: var(--f4-color); }
+
+        /* --- ESTILOS CHECKLIST --- */
+        .check-container { display: none; background: var(--gray-bg); color: black; min-height: 100vh; padding: 10px; padding-bottom: 120px; }
+        
+        .printable-area { 
+            max-width: 100%; 
+            margin: 0; 
+            background: white; 
+            border: none; 
+            width: 100%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .table-responsive { width: 100%; overflow-x: hidden; }
+
+        .header-table { width: 100%; border-collapse: collapse; background: white; table-layout: fixed; }
+        .header-table td { border: 1px solid black; padding: 4px; font-size: 0.65em; color: black; }
+        
+        .title-container { display: flex; flex-direction: column; align-items: center; padding: 10px; gap: 10px; }
+        .main-title-text { text-align: center; font-size: 1.1em; font-weight: bold; color: white; }
+        
+        .btn-return-head { 
+            background: rgba(255,255,255,0.2); border: 1px solid white; color: white; 
+            padding: 6px 10px; cursor: pointer; font-size: 0.75em; border-radius: 4px;
+        }
+
+        .section-banner { background: #4a5568; color: white; text-align: center; padding: 8px; font-weight: bold; font-size: 0.85em; }
+        
+        .input-grid { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid black; }
+        .field { border: 1px solid black; padding: 5px; display: flex; flex-direction: column; background: white; }
+        .field label { font-size: 0.65em; font-weight: bold; color: black; }
+        .field input { border: none; outline: none; font-size: 0.85em; width: 100%; background: transparent; color: black; }
+
+        .eval-table { width: 100%; border-collapse: collapse; background: white; }
+        .eval-table th { background: var(--navy); color: white !important; font-size: 0.7em; padding: 6px; border: 1px solid black; text-transform: uppercase; }
+        .eval-table td { border: 1px solid black; padding: 5px; font-size: 0.75em; color: black !important; background: white !important; }
+        .cat-cell { font-weight: bold; text-align: center; width: 80px; font-size: 0.7em; }
+        
+        .options { display: flex; gap: 2px; justify-content: center; }
+        .options input { display: none; }
+        .options label { border: 1px solid #ccc; padding: 5px 8px; cursor: pointer; font-size: 0.8em; background: #fff; border-radius: 4px; color: black; }
+        
+        input[value="Si"]:checked + label { background: #28a745; color: white; border-color: #28a745; }
+        input[value="No"]:checked + label { background: #dc3545; color: white; border-color: #dc3545; }
+        input[value="N/A"]:checked + label { background: #6c757d; color: white; border-color: #6c757d; }
+
+        .signature-section { padding: 10px; background: white; border-top: 2px solid #000; }
+        .signature-wrapper { width: 100%; background: #f9f9f9; border: 1px solid #000; }
+        .signature-pad { width: 100%; height: 120px; display: block; }
+
+        .footer-btns { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--dark); padding: 15px; display: flex; gap: 10px; box-sizing: border-box; z-index: 1000; }
+        .footer-btns button { flex: 1; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        .btn-save { background: var(--gold); color: black; border: none; }
+        .btn-clear { background: white; color: black; border: none; }
+
+        .pre-req-item { display: flex; justify-content: space-between; align-items: center; padding: 5px 10px; border-bottom: 1px dotted #ccc; background: white; }
+        .pre-req-item span { font-size: 0.75em; color: black; }
+
+        .critical-row { background-color: var(--critical) !important; }
+
+        #notas-fase { padding: 10px; font-size: 0.7em; border-top: 1px solid black; background: white; color: black; }
+
+        /* --- MEJORA: ESTILOS CÁMARA --- */
+        .btn-camera { background: #4a5568; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 1.1em; margin-top: 5px; }
+        .img-preview { max-width: 60px; max-height: 45px; margin-top: 5px; display: none; border: 1px solid #ccc; border-radius: 4px; vertical-align: middle; margin-left: 5px; }
+    </style>
+</head>
+<body>
+
+<div id="main-menu">
+    <div class="menu-header"><h1>Certificación Territorio Safety</h1></div>
+    <div class="grid-menu">
+        <div class="phase-card card-f1" onclick="abrirChecklist(1)"><div class="phase-icon">🧱</div><div class="phase-title">Fase 1</div></div>
+        <div class="phase-card card-f2" onclick="abrirChecklist(2)"><div class="phase-icon">🛡️</div><div class="phase-title">Fase 2</div></div>
+        <div class="phase-card card-f3" onclick="abrirChecklist(3)"><div class="phase-icon">📈</div><div class="phase-title">Fase 3</div></div>
+        <div class="phase-card card-f4" onclick="abrirChecklist(4)"><div class="phase-icon">🏆</div><div class="phase-title">Fase 4</div></div>
+    </div>
+</div>
+
+<div id="checklist-screen" class="check-container">
+    <div class="printable-area" id="printable-content">
+        <table class="header-table">
+            <tr>
+                <td style="width: 25%;"><b>Código:</b><br>VPO.SAFE. 3.1. TS</td>
+                <td id="header-color-cell" rowspan="4" style="width: 50%;">
+                    <div class="title-container">
+                        <button class="btn-return-head" id="btn-back" onclick="volverAlMenu()">← Menú</button>
+                        <div id="dinamic-title" class="main-title-text">FASE</div>
+                    </div>
+                </td>
+                <td style="width: 25%;"><b>Página:</b> 1/1</td>
+            </tr>
+            <tr><td id="dinamic-fecha-real"><b>Fecha:</b></td><td id="dinamic-elaboro"><b>Elab:</b> JCL</td></tr>
+            <tr><td id="dinamic-revision"><b>Rev:</b></td><td id="dinamic-aprobo" rowspan="2"><b>Aprobó:</b> CF-Dir Safety</td></tr>
+            <tr><td id="dinamic-version"><b>Ver:</b></td></tr>
+        </table>
+
+        <div class="section-banner">PRE-REQUISITOS</div>
+        <div id="pre-requisitos-container"></div>
+
+        <div class="input-grid">
+            <div class="field"><label>Fecha Auditoría</label><input type="date" id="audit_fecha"></div>
+            <div class="field"><label>Territorio / Área</label><input type="text" id="audit_territorio"></div>
+            <div class="field"><label>Operador</label><input type="text" id="audit_operador"></div>
+            <div class="field"><label>Auditor</label><input type="text" id="audit_auditor"></div>
+        </div>
+
+        <div class="section-banner" id="eval-banner">REQUISITOS</div>
+        <div class="table-responsive">
+            <table class="eval-table">
+                <thead>
+                    <tr><th>No.</th><th>Ítem</th><th>Pregunta</th><th>Si</th><th>No</th><th>N/A</th><th>Comentarios</th></tr>
+                </thead>
+                <tbody id="eval-content"></tbody>
+            </table>
+        </div>
+
+        <div class="signature-section">
+            <label style="font-size:0.7em; font-weight:bold; color: black;">FIRMA:</label>
+            <div class="signature-wrapper"><canvas id="signature-pad" class="signature-pad"></canvas></div>
+            <button id="btn-clear-sig" style="font-size:0.6em; margin-top:5px;" onclick="clearSignature()">Limpiar Firma</button>
+        </div>
+
+        <div id="notas-fase">
+            <b>NOTAS IMPORTANTES:</b><br>
+            • La Fase NO puede ser certificada sin cumplir Pre-Requisitos.<br>
+            <span id="txt-nota-obligatoria"></span>
+        </div>
+    </div>
+
+    <div class="footer-btns">
+        <button class="btn-clear" onclick="location.reload()">Limpiar</button>
+        <button class="btn-save" onclick="exportarReporte()">Exportar PDF</button>
+    </div>
+</div>
+
+<script>
+    let signaturePad;
+    let evidencias = {}; 
+
+    const dataFases = {
+         1: { 
+            titulo: "CERTIFICACIÓN TERRITORIO SAFETY FASE 1", 
+            color: "#ff0000", 
+            version: "01", 
+            fecha: "30/01/2025", 
+            codigo: "VPO.SAFE. 3.1. TS",
+            elaboro: "JCL Safety Especialista",
+            aprobo: "CF-Director Safety MAZ",
+            prerequisitos: [
+                "<b>Política de Seguridad - Principios de Seguridad Territorial</b> <br>Comprende y aplica la Política de Seguridad y los Principios de Seguridad Territorial",
+                "<b>5s:</b> <br>Aplicado a nivel básico en el área (Orden y limpieza)",
+                "<b>Herramientas de Trabajo:</b> <br>Disponibles, en buenas condiciones y acordes para hacer tareas de forma segura",
+                "<b>Equipo para la atención de emergencias:</b> <br>Disponibles, en buenas condiciones y de fácil acceso",
+                "<b>Equipo de Protección Personal:</b> <br>Uso correcto, en buena condición y, acorde al riesgo de la tareas entorno de trabajo",
+                "NOTA: Verificar que se cuenta Información de seguridad aplicable para consulta (SOP / OPL, Manuales, etc.) "
+            ], 
+            preguntas: [
+                {id:1, cat:"Conciencia de peligros", txt:"Participación periódica Semanal en el Reporte de Comportamientos y Condiciones, con las herramientas establecida. Safety 360 / Guardian. (25%). ", crit: true},
+                {id:2, cat:"Conciencia de peligros", txt:"<b>Conoce listado de equipo Critico de su Territorio. </b>", crit: true},
+                {id:3, cat:"Conciencia de peligros", txt:"<b>Conoce y explica los riesgos del Proceso y sus controles. </b>", crit: true},
+                {id:4, cat:"Control de Riesgos", txt:"<b>Puede explicar y usa el flujo de Comunicación de Alertas</b> ", crit: true},
+                {id:5, cat:"Control de Riesgos", txt:"<b>Reconoce las Reglas de ORO.</b> ", crit: true},
+                {id:6, cat:"Seguridad del Equipo", txt:"<b>Licencia para Operar</b> ", crit: false},
+                {id:7, cat:"Seguridad del Equipo", txt:"<b>Esta incluido dentro de un plan de Entrenamiento 2025 o ya cuenta con el Certificado de participación de Safe Together</b> ", crit: false},
+                {id:8, cat:"Seguridad del Equipo", txt:"Participación dentro de la Encuesta de Cultura de Seguridad. (50%). ", crit: false},
+                {id:9, cat:"Seguridad del Equipo", txt:"<b>Cursó y aprobó el entrenamiento de Seguridad Territorial de Supply Training.</b> ", crit: false},
+                {id:10, cat:"Solución de Problemas", txt:"Se cuenta con Conocimiento para participar en la solución de Problemas. ", crit: false}
+            ],
+            notasFinales: [
+                "La Fase NO puede ser certificada: [cite: 27]",
+                "* En caso de NO cumplir cualquiera de los Pre-Requisitos [cite: 28]",
+                "* Las Casillas grises son de OBLIGATORIO cumplimiento para Todo el Equipo dueño del Territorio. [cite: 29]",
+                "* Para la Casillas Blancas la Certificación del Territorio dependerá del %Cumplimiento del equipo dueño del Territorio. [cite: 30]"
+            ]
+        },
+
+
+        2: { 
+            titulo: "CERTIFICACIÓN TERRITORIO SAFETY FASE 2", 
+            color: "#76a028", 
+            version: "06", 
+            fecha: "30/01/2025", 
+            codigo: "VPO.SAFE. 3.1. TS",
+            elaboro: "JCL Safety Specialist",
+            aprobo: "CF-Director Safety MAZ",
+            prerequisitos: [
+                "<b>Política de Seguridad - Principios de Seguridad Territorial:</b> <br>*Comprende y aplica la Política de Seguridad y los Principios de Seguridad Territorial [cite: 42, 43]",
+                "<b>SKAP Seguridad:</b> <br>Comprende y aplica los criterios definidos en SKAP SAFETY-Licencia para Operar. ",
+                "<b>5s:</b> <br>* Aplicado a nivel básico en el área (Orden y limpieza) [cite: 45, 46]",
+                "<b>Riesgos:</b> <br>* No hay riesgos obvios/Normalizados presentes en el área, maquinaria/equipo [cite: 47]",
+                "<b>Herramientas de Trabajo:</b> <br>* Disponibles, en buenas condiciones y acordes para hacer tareas de forma segura [cite: 48]",
+                "<b>Equipo para la atención de emergencias: </b> <br>* Disponibles, en buenas condiciones y de fácil acceso [cite: 49]",
+                "<b>Equipo de Protección Personal:</b> <br>*Uso correcto, en buena condición y, acorde al riesgo de la tareas entorno de trabajo [cite: 50, 51]",
+                "<b>NOTA: Verificar que se cuenta Información de seguridad aplicable para consulta (SOP/OPL, Manuales, etc.) "
+            ], 
+            preguntas: [
+                {id:1, cat:"Conciencia de peligros", txt:"Participación periodica Semanal en el Reporte de Comportamientos y Condiciones, con las herramientas establecidad. Safety 360/Guardian. ", crit: true},
+                {id:2, cat:"Conciencia de peligros", txt:"Participación periodica semanal de la rutina de Monitoreo. Registro dentro de herramienta establecida, con alcance a la verificación de los equipos Criticos de Seguridad. ", crit: true},
+                {id:3, cat:"Conciencia de peligros", txt:"Registro de participación en DPA (Tareas No Rutinarias) / JHA proceso de evaluación de riesgos. ", crit: true},
+                {id:4, cat:"Control de Riesgos", txt:"<b>Puede explicar las últimas medidas adoptadas en relación con las Alertas de Seguridad (Lesiones + SIFPOT)</b> ", crit: true},
+                {id:5, cat:"Control de Riesgos", txt:"<b>Puede conectar las Reglas de Oro con los peligros del Territorio, realiza reportes. Ver registro Safety 360/Guardian. </b>", crit: true},
+                {id:6, cat:"Seguridad del Equipo", txt:"Participó y fue certificado en el Taller Conductual SAFE TOGETHER. ", crit: false},
+                {id:7, cat:"Seguridad del Equipo", txt:"Participó en la Encuesta de Cultura de Seguridad (SCA) del ultimo año. Conoce los Resultados. ", crit: false},
+                {id:8, cat:"Seguridad del Equipo", txt:"Entiende el Concepto de PI Retrovisor y es aplicado en el Territorio. (En caso de NO aplicar el seguimiento de Pl, este es validado por Safety). ", crit: false},
+                {id:9, cat:"Solución de Problemas", txt:"<b>Participa en el análisis de los 5 Why de los incidentes de seguridad. (Ver Registros).</b> ", crit: false},
+                {id:10, cat:"Solución de Problemas", txt:"<b>Explican cómo se comunican los temas relacionados con la seguridad durante el traspaso de turnos. (Ver Registro). </b>", crit: false}
+            ],
+            notasFinales: [
+                "La Fase NO puede ser certificada: [cite: 57]",
+                "* En caso de NO cumplir cualquiera de los Pre-Requisitos [cite: 59]",
+                "* Las Casillas grises son de OBLIGATORIO cumplimiento para Todo el Equipo dueño del Territorio. ",
+                "* Para la Casillas Blancas la Certificación del Territorio dependerá del %Cumplimiento del equipo dueño del Territorio. [cite: 61]"
+            ]
+        },
+
+
+        3: { 
+            titulo: "CERTIFICACIÓN TERRITORIO SAFETY FASE 3", 
+            color: "#00a0df", 
+            version: "06", 
+            fecha: "30/01/2025", 
+            codigo: "VPO.SAFE. 3.1. TS",
+            elaboro: "JCL Safety Specialist",
+            aprobo: "CF-Director Safety MAZ",
+            prerequisitos: [
+                "<b>Certificación Fase 2 de Seguridad Territorial</b>",
+                "<b>No se encuentran riesgos de Lesión Inminente dentro del Territorio.</b>"
+            ], 
+
+
+            preguntas: [
+                {id:1, cat:"Conciencia Peligros", txt:"<span style='color: #B71C1C; font-weight: bold;'>(El 65% de los dueños del Tentorio Realiza una Rutina de Monitoreo manteniendo una efectividad Promedio ≥ 80%. La evidencia describe registros asociados a: Reporte de Comportamiento, Reporte de Condiciones, Inspección Trabajos Externos (Propios y Terceros), Reporte de Incidentes, FOCO Asociada a la RAS identificada por el o por el equipo. REGISTRO EN GUARDIAN</span> ", crit: true},
+                {id:2, cat:"Conciencia Peligros", txt:"<span style='color: #B71C1C; font-weight: bold;'>Realiza comprobación de los equipos Criticos en Seguridad </span>", crit: true},
+                {id:3, cat:"Conciencia Peligros", txt:"Todos los Dueño del Territorio Explican en relación a su área, los riesgos y controles asociados a (PSMs), GOPS Y DASHBOARDS (seguridad operacional). ", crit: true},
+                {id:4, cat:"Conciencia Peligros", txt:"(<span style='color: #B71C1C; font-weight: bold;'>El 65% </span> de los dueños del Territorio) Realiza Reportes dentro de Guardian asociados a identificación de novedades de SOPS y GOPs. #RTC, #Vidrio, #Manos, #SQ etc. ", crit: true},
+                {id:5, cat:"Control de Riesgos", txt:"En relación con las Alertas de Seguridad (Lesiones + SIFPOT), explica y actualiza Evaluaciones de Riesgo y el mapa de calor dentro del Territorio. Registro Lecciones Aprendidas Supply Trainin ", crit: true},
+                {id:6, cat:"Control de Riesgos", txt:"Cada Operador Conoce y CUMPLE las Reglas de oro. Conoce las Tareas SIF del Territorio incluyendo el Plan de Mitigación. ", crit: true},
+                {id:7, cat:"Control de Riesgos", txt:"Verifica los controles definidos en los Permisos de Trabajo o SOPs en curso dentro del Territorio. (Ver Registros Guardian). ", crit: true},
+                {id:8, cat:"Seguridad del Equipo", txt:"(El 65% de los dueños del Territorio) esta Certificado en SAFE TOGETHER. Explica el impacto y como hace uso de las Herramientas vistas en el Taller. ", crit: true},
+                {id:9, cat:"Seguridad del Equipo", txt:"Participó en la Encuesta de Cultura de Seguridad (SCA) del ultimo año. Conoce los Resultados y las acciones aplicadas. ", crit: true},
+                {id:10, cat:"Solución de Problemas", txt:"Pl de Seguridad definido en conjunto con FLTM y con su proceso de Solución de Problemas. ", crit: true},
+                {id:11, cat:"Solución de Problemas", txt:"Tiene la Capacidad de entrenar a contratistas y recién llegados para que trabajen con seguridad (ver registros). ", crit: true}
+            ],
+            notasFinales: [
+                "La Fase NO puede ser certificada: [cite: 84]",
+                "* En caso de NO cumplir cualquiera de los Pre-Requisitos [cite: 85]",
+                "* Las Casillas grises son de OBLIGATORIO cumplimiento para Todo el Equipo dueño del Territorio. [cite: 86]",
+                "* Para la Casillas Blancas la Certificación del Territorio dependerá del %Cumplimiento del equipo dueño del Territorio. [cite: 87]"
+            ]
+        },
+
+
+
+       4: { 
+            titulo: "CERTIFICACIÓN TERRITORIO SAFETY FASE 4", 
+            color: "#006847", 
+            version: "01", 
+            fecha: "30/01/2026", 
+            codigo: "VPO.SAFE. 3.1. TS",
+            elaboro: "JCL Safety Specialist",
+            aprobo: "CF-Director Safety MAZ",
+            prerequisitos: [
+                "<b>Certificación Fase 3 de Seguridad Territorial > 3 meses</b> ",
+                "<b>No se encuentran riesgos de Lesión Inminente dentro del Territorio.</b> "
+            ], 
+            preguntas: [
+                {id:1, cat:"Conciencia Peligros", txt:"Cada Operador Realiza una Rutina de Monitoreo manteniendo una efectividad Promedio ≥ 80%. La evidencia describe registros asociados a: Reporte de Comportamiento, Reporte de Condiciones, Inspección Equipo Critico, Inspección Trabajos Contratistas, Reporte de Incidentes, FOCO Asociada a la RAS identificada por el o por el equipo. ", crit: true},
+                {id:2, cat:"Conciencia Peligros", txt:"Cada Operador realiza Reportes dentro de Guardian asociados a identificación de novedades de SOPs y GOPs. #RTC, #Vidrio, #Manos, #SQ etc. ", crit: true},
+                {id:3, cat:"Conciencia Peligros", txt:"Cada Operador Registra acciones derivadas de Lecciones Aprendidas. Explica como se notifica e identifica acciones derivadas de eventos ocurridos en otras áreas y/o Operaciones ", crit: true},
+                {id:4, cat:"Conciencia Peligros", txt:"Cada Operador valida Permisos de Trabajo. Este check lo realiza antes del inicio de actividades con Permisos de Trabajo. ", crit: true},
+                {id:5, cat:"Control de Riesgos", txt:"Cada Operador se encuentra certificado en Safe Together. ", crit: true},
+                {id:6, cat:"Control de Riesgos", txt:"Cada Operador Conoce y CUMPLE las Reglas de oro. Personal Sin Reporte Negativo de Reglas de ORO. ", crit: true},
+                {id:7, cat:"Seguridad del Equipo", txt:"Cada Operador participa en OWD y Observaciones de Comportamiento entre pares (con feedback directo). Registro Guardian. NO Anónimo. ", crit: true},
+                {id:8, cat:"Solución de Problemas", txt:"Cada Operador puede participar en la Solución de Reportes de Anomalías de Safety. ", crit: true}
+            ],
+            notasFinales: [
+                "La Fase NO puede ser certificada: [cite: 115]",
+                "* En caso de NO cumplir cualquiera de los Pre-Requisitos [cite: 116]",
+                "* Evaluación minima requerido por cada dueño de Territorio = 87.5% "
+            ]
+        },
+
+};
+    function tomarFoto(id) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+
+    // 🔧 MEJORA: compatibilidad total
+    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        input.setAttribute('capture', 'environment');
+    }
+
+    input.onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = evt => {
+            evidencias[id] = evt.target.result;
+
+            const preview = document.getElementById(`preview-q${id}`);
+            if (preview) {
+                preview.src = evt.target.result;
+                preview.style.display = 'inline-block';
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+
+    input.click();
+}
+
+    function abrirChecklist(fase) {
+        const info = dataFases[fase];
+        evidencias = {}; 
+        document.getElementById('main-menu').style.display = 'none';
+        document.getElementById('checklist-screen').style.display = 'block';
+        document.getElementById('header-color-cell').style.backgroundColor = info.color;
+        document.getElementById('dinamic-title').innerText = info.titulo;
+        document.getElementById('dinamic-fecha-real').innerHTML = "<b>Fecha:</b> " + info.fecha;
+        document.getElementById('dinamic-revision').innerHTML = "<b>Rev:</b> " + info.fecha;
+        document.getElementById('dinamic-version').innerHTML = "<b>Ver:</b> " + info.version;
+        document.getElementById('txt-nota-obligatoria').innerText = (fase === 4) ? "• Evaluación mínima = 87.5%" : "• Casillas grises OBLIGATORIAS.";
+
+        const preContainer = document.getElementById('pre-requisitos-container');
+        preContainer.innerHTML = "";
+        info.prerequisitos.forEach((pre, i) => {
+            preContainer.innerHTML += `<div class="pre-req-item"><span>${pre}</span><input type="checkbox"></div>`;
+        });
+
+        const tableBody = document.getElementById('eval-content');
+        tableBody.innerHTML = "";
+        info.preguntas.forEach(p => {
+            tableBody.innerHTML += `
+                <tr class="${p.crit ? 'critical-row' : ''}">
+                    <td style="text-align:center;">${p.id}</td>
+                    <td class="cat-cell">${p.cat}</td>
+                    <td>
+                        ${p.txt}<br>
+                        <button class="btn-camera" onclick="tomarFoto(${p.id})">📸</button>
+                        <img id="preview-q${p.id}" class="img-preview">
+                    </td>
+                    <td><div class="options"><input type="radio" name="q${p.id}" id="q${p.id}si" value="Si"><label for="q${p.id}si">S</label></div></td>
+                    <td><div class="options"><input type="radio" name="q${p.id}" id="q${p.id}no" value="No"><label for="q${p.id}no">N</label></div></td>
+                    <td><div class="options"><input type="radio" name="q${p.id}" id="q${p.id}na" value="N/A"><label for="q${p.id}na">-</label></div></td>
+                    <td><input type="text" style="width:100%; border:none; background:transparent;"></td>
+                </tr>`;
+        });
+        const canvas = document.getElementById('signature-pad');
+        signaturePad = new SignaturePad(canvas, { backgroundColor: 'rgb(255, 255, 255)' });
+        resizeCanvas();
+    }
+
+    function resizeCanvas() {
+        const canvas = document.getElementById('signature-pad');
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        canvas.width = canvas.offsetWidth * ratio;
+        canvas.height = canvas.offsetHeight * ratio;
+        canvas.getContext("2d").scale(ratio, ratio);
+        if(signaturePad) signaturePad.clear();
+    }
+
+    function clearSignature() { signaturePad.clear(); }
+    function volverAlMenu() { location.reload(); }
+
+    function exportarReporte() {
+        const element = document.getElementById('printable-content');
+        const territorio = document.getElementById('audit_territorio').value || 'REPORTE';
+        
+        // Crear un clon profundo para el PDF
+        const clone = element.cloneNode(true);
+        
+        // Estilos para el clon (asegurar visibilidad)
+        clone.style.width = "800px"; 
+        clone.style.backgroundColor = "white";
+        clone.style.color = "black";
+        
+        // Reemplazar inputs por texto real en el clon
+        const originalInputs = element.querySelectorAll('input');
+        const cloneInputs = clone.querySelectorAll('input');
+        
+        originalInputs.forEach((input, index) => {
+            const replacement = document.createElement('span');
+            replacement.style.fontWeight = "bold";
+            replacement.style.fontSize = "0.8em";
+            
+            if (input.type === 'radio') {
+                if (input.checked) {
+                    replacement.innerText = input.value;
+                    cloneInputs[index].parentNode.replaceChild(replacement, cloneInputs[index]);
+                } else {
+                    cloneInputs[index].parentNode.innerHTML = "";
+                }
+            } else if (input.type === 'checkbox') {
+                replacement.innerText = input.checked ? "[X]" : "[ ]";
+                cloneInputs[index].parentNode.replaceChild(replacement, cloneInputs[index]);
+            } else {
+                replacement.innerText = input.value || "__________";
+                cloneInputs[index].parentNode.replaceChild(replacement, cloneInputs[index]);
+            }
+        });
+
+        // Asegurar que las evidencias (fotos) se pasen al clon
+        Object.keys(evidencias).forEach(id => {
+            const imgClon = clone.querySelector(`#preview-q${id}`);
+            if (imgClon) {
+                imgClon.src = evidencias[id];
+                imgClon.style.display = 'block';
+                imgClon.style.maxWidth = '250px'; 
+                imgClon.style.maxHeight = '200px';
+                imgClon.style.border = "1px solid #000";
+                imgClon.style.marginTop = "10px";
+            }
+        });
+
+        // Pasar la firma al clon
+        if (!signaturePad.isEmpty()) {
+            const signatureImage = signaturePad.toDataURL();
+            const imgFirma = document.createElement('img');
+            imgFirma.src = signatureImage;
+            imgFirma.style.width = "250px";
+            const sigWrapper = clone.querySelector('.signature-wrapper');
+            if (sigWrapper) {
+                sigWrapper.innerHTML = '';
+                sigWrapper.appendChild(imgFirma);
+            }
+        }
+
+        // Limpiar botones innecesarios en el PDF
+        clone.querySelectorAll('button, #btn-back, #btn-clear-sig').forEach(btn => btn.remove());
+
+        // Opciones de exportación
+        const opt = {
+            margin: [0, 0, 0, 0],
+            filename: `CERTIFICACION_${territorio.toUpperCase()}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { 
+                scale: 2, 
+                useCORS: true, 
+                letterRendering: true,
+                backgroundColor: "#FFFFFF"
+            },
+            jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+        };
+
+        // Ejecutar conversión
+        html2pdf().set(opt).from(clone).save();
+    }
+</script>
+</body>
+</html>
